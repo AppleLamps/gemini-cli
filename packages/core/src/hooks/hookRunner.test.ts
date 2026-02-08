@@ -866,6 +866,42 @@ describe('HookRunner', () => {
       });
     });
 
+    it('should treat null exit code as non-blocking error', async () => {
+      const errorText = 'hook terminated by signal';
+
+      mockSpawn.mockStderrOn.mockImplementation(
+        (event: string, callback: (data: Buffer) => void) => {
+          if (event === 'data') {
+            setImmediate(() => callback(Buffer.from(errorText)));
+          }
+        },
+      );
+
+      mockSpawn.mockProcessOn.mockImplementation(
+        (
+          event: string,
+          callback: (code: number | null) => void,
+        ) => {
+          if (event === 'close') {
+            setImmediate(() => callback(null));
+          }
+        },
+      );
+
+      const result = await hookRunner.executeHook(
+        commandConfig,
+        HookEventName.BeforeTool,
+        mockInput,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.exitCode).toBe(1);
+      expect(result.output).toEqual({
+        decision: 'allow',
+        systemMessage: `Warning: ${errorText}`,
+      });
+    });
+
     it('should handle invalid JSON with exit code 2 (blocking error)', async () => {
       const invalidJson = '{ "error": incomplete';
 
