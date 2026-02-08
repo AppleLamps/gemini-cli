@@ -330,6 +330,8 @@ export class HookRunner {
       child.on('close', (exitCode) => {
         clearTimeout(timeoutHandle);
         const duration = Date.now() - startTime;
+        const normalizedExitCode =
+          exitCode === null ? EXIT_CODE_NON_BLOCKING_ERROR : exitCode;
 
         if (timedOut) {
           resolve({
@@ -365,7 +367,7 @@ export class HookRunner {
           // Convert error output to structured format
           output = this.convertPlainTextToHookOutput(
             stderr.trim(),
-            exitCode || EXIT_CODE_NON_BLOCKING_ERROR,
+            normalizedExitCode,
           );
         }
 
@@ -376,7 +378,7 @@ export class HookRunner {
           output,
           stdout,
           stderr,
-          exitCode: exitCode || EXIT_CODE_SUCCESS,
+          exitCode: normalizedExitCode,
           duration,
         });
       });
